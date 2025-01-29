@@ -40,7 +40,6 @@ const addCategory = async (req, res) => {
   }
 };
 
-// Remove a food category and its associated foods
 const removeCategory = async (req, res) => {
   try {
     const category = await categoryModel.findById(req.body.id);
@@ -48,7 +47,13 @@ const removeCategory = async (req, res) => {
       // Delete image file from the server if it exists
       if (category.image) {
         try {
-          fs.unlinkSync(`uploads/categories/${category.image}`);
+          const imagePath = `.${category.image}`; // Remove extra "uploads/categories/"
+          if (fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+            console.log(`Deleted image file: ${imagePath}`);
+          } else {
+            console.warn(`Image file not found: ${imagePath}`);
+          }
         } catch (err) {
           console.error("Error deleting image file", err);
         }
