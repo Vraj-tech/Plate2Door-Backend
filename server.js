@@ -5,6 +5,8 @@ import userRouter from "./routes/userRoute.js";
 import foodRouter from "./routes/foodRoute.js";
 import cartRouter from "./routes/cartRoute.js";
 import orderRouter from "./routes/orderRoute.js";
+import categoryRouter from "./routes/categoryRoute.js";
+// import categoryRouter from "./routes/categoryRoutes.js"; // Import category router
 import "dotenv/config";
 
 // app config
@@ -18,7 +20,9 @@ app.use(cors()); // Enables Cross-Origin Resource Sharing
 // Database connection
 connectDB();
 
-// Static file serving
+app.use("/uploads", express.static("uploads"));
+
+// // Static file serving
 app.use("/images", express.static("uploads")); // Ensure images from 'uploads' folder are accessible
 
 // API endpoints
@@ -26,6 +30,7 @@ app.use("/api/user", userRouter); // Handles user-related routes
 app.use("/api/food", foodRouter); // Handles food-related routes
 app.use("/api/cart", cartRouter); // Handles cart-related routes
 app.use("/api/order", orderRouter); // Handles order-related routes
+app.use("/api/categories", categoryRouter); // Handles category-related routes
 
 // Root route for API status
 app.get("/", (req, res) => {

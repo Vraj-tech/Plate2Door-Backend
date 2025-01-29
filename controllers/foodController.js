@@ -113,4 +113,24 @@ const getFoodById = async (req, res) => {
   }
 };
 
-export { listFood, addFood, removeFood, updateFood, getFoodById };
+// Search food items by name or category
+const searchFood = async (req, res) => {
+  try {
+    const query = req.query.query || ""; // Search query parameter
+
+    // Search food by name or category (case-insensitive)
+    const foods = await foodModel.find({
+      $or: [
+        { name: { $regex: query, $options: "i" } },
+        { category: { $regex: query, $options: "i" } },
+      ],
+    });
+
+    res.json({ success: true, data: foods });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: "Error searching food" });
+  }
+};
+
+export { listFood, addFood, removeFood, updateFood, getFoodById, searchFood };
