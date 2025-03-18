@@ -14,6 +14,35 @@ dotenv.config();
 const createToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" }); // Token valid for 7 days
 };
+// ✅ Function to send emails using Nodemailer
+const sendEmail = async ({ to, subject, html }) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    const mailOptions = {
+      from: `"Plate2Door" <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully to ${to}`);
+  } catch (error) {
+    console.error(`❌ Email sending failed: ${error}`);
+  }
+};
 
 // ---------------------- AUTH FUNCTIONALITY ----------------------
 
@@ -107,6 +136,7 @@ const registerUser = async (req, res) => {
 };
 
 // ---------------------- FORGOT PASSWORD FUNCTIONALITY ----------------------
+// ✅ Send OTP for Password Reset
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -118,24 +148,21 @@ const forgotPassword = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    // Generate a unique reset token
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+    const hashedOTP = crypto
       .createHash("sha256")
-      .update(resetToken)
+      .update(otp.toString())
       .digest("hex");
 
-    user.resetToken = hashedToken;
-    user.resetTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
+    // Store OTP in user document
+    user.resetOTP = hashedOTP;
+    user.resetOTPExpires = Date.now() + 10 * 60 * 1000; // OTP valid for 10 minutes
     await user.save();
 
-    // Construct password reset link
-    const resetLink = `${process.env.BASE_URL2}/reset-password/${resetToken}`;
+    console.log(`✅ OTP Sent: ${otp}`);
 
-    console.log("✅ Sending email to:", user.email);
-    console.log("✅ Reset Link:", resetLink);
-
-    // Setup Nodemailer Transporter
+    // Send OTP via email
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
@@ -149,33 +176,73 @@ const forgotPassword = async (req, res) => {
       },
     });
 
-    // Mail options
     const mailOptions = {
       from: `"Plate2Door" <${process.env.SMTP_USER}>`,
       to: user.email,
-      subject: "Reset Your Password - Plate2Door",
+      subject: "Password Reset OTP - Plate2Door",
       html: `
-        <h3>Reset Your Password</h3>
-        <p>Click the link below to reset your password:</p>
-        <a href="${resetLink}" target="_blank">${resetLink}</a>
-        <p>If you didn’t request this, please ignore this email.</p>
+        <h3>Your OTP for Password Reset</h3>
+        <p>Use the following OTP to reset your password: <strong>${otp}</strong></p>
+        <p>This OTP is valid for 10 minutes.</p>
+        <p>If you didn't request this, please ignore this email.</p>
       `,
     };
 
-    // Send email
     await transporter.sendMail(mailOptions);
-    console.log("✅ Reset email sent successfully!");
+    console.log("✅ OTP email sent successfully!");
 
     res.status(200).json({
       success: true,
-      message: "Reset password link sent to your email.",
+      message: "OTP sent to your email.",
     });
   } catch (error) {
     console.error("❌ Error:", error);
     res.status(500).json({ success: false, message: "Something went wrong." });
   }
 };
+// ✅ Verify OTP
+const verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const user = await userModel.findOne({ email });
 
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    if (
+      !user.resetOTP ||
+      !user.resetOTPExpires ||
+      user.resetOTPExpires < Date.now()
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "OTP expired. Request a new one." });
+    }
+
+    const hashedOTP = crypto
+      .createHash("sha256")
+      .update(otp.toString())
+      .digest("hex");
+
+    if (hashedOTP !== user.resetOTP) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid OTP. Try again." });
+    }
+
+    // OTP Verified - Allow password reset
+    res.status(200).json({
+      success: true,
+      message: "OTP verified. Proceed to reset password.",
+    });
+  } catch (error) {
+    console.error("❌ Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong." });
+  }
+};
 // ---------------------- FAVORITES FUNCTIONALITY ----------------------
 
 // Add a food item to favorites
@@ -288,50 +355,63 @@ const getBookmarkStats = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+// ✅ Reset Password using OTP
 const resetPassword = async (req, res) => {
   try {
-    const { token } = req.params;
-    const { newPassword } = req.body;
-
-    // Hash the token to match the stored one
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
-    // Find user by reset token & check expiration time
-    const user = await userModel.findOne({
-      resetToken: hashedToken,
-      resetTokenExpires: { $gt: Date.now() }, // Check if token is not expired
-    });
+    const { email, otp, newPassword } = req.body;
+    const user = await userModel.findOne({ email });
 
     if (!user) {
       return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    if (
+      !user.resetOTP ||
+      !user.resetOTPExpires ||
+      user.resetOTPExpires < Date.now()
+    ) {
+      return res
         .status(400)
-        .json({ success: false, message: "Invalid or expired token" });
+        .json({ success: false, message: "OTP expired. Request a new one." });
+    }
+
+    const hashedOTP = crypto
+      .createHash("sha256")
+      .update(otp.toString())
+      .digest("hex");
+
+    if (hashedOTP !== user.resetOTP) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid OTP. Try again." });
     }
 
     // Validate new password
     if (newPassword.length < 8) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 8 characters long",
+        message: "Password must be at least 8 characters long.",
       });
     }
 
-    // Hash the new password
+    // Hash new password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // Update user password & remove reset token
+    // Update password and clear OTP fields
     user.password = hashedPassword;
-    user.resetToken = undefined;
-    user.resetTokenExpires = undefined;
+    user.resetOTP = undefined;
+    user.resetOTPExpires = undefined;
     await user.save();
 
     res
       .status(200)
-      .json({ success: true, message: "Password reset successfully" });
+      .json({ success: true, message: "Password reset successfully." });
   } catch (error) {
     console.error("❌ Error:", error);
-    res.status(500).json({ success: false, message: "Something went wrong" });
+    res.status(500).json({ success: false, message: "Something went wrong." });
   }
 };
 
@@ -378,6 +458,7 @@ export {
   loginUser,
   registerUser,
   forgotPassword,
+  verifyOTP,
   addToFavorites,
   removeFromFavorites,
   getUserFavorites,

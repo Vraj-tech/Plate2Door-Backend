@@ -8,11 +8,11 @@ const userSchema = new mongoose.Schema(
     cartData: { type: Object, default: {} },
     favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "food" }],
 
-    // ✅ Reset Token for Forgot Password
-    resetToken: { type: String, default: null },
-    resetTokenExpires: { type: Date, default: null },
+    // ✅ OTP for Forgot Password (Replaces Reset Token)
+    resetOTP: { type: String, default: null }, // Stores the OTP
+    resetOTPExpires: { type: Date, default: null }, // Expiration time for OTP
   },
-  { minimize: false, timestamps: true } // ✅ Added timestamps for createdAt & updatedAt
+  { minimize: false, timestamps: true } // ✅ Keeps track of createdAt & updatedAt
 );
 
 // ✅ Ensure the model is not recompiled multiple times

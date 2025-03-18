@@ -8,6 +8,8 @@ import orderRouter from "./routes/orderRoute.js";
 import categoryRouter from "./routes/categoryRoute.js";
 import couponRouter from "./routes/couponRoute.js";
 import adminRouter from "./routes/adminRoute.js"; // Import admin routes
+import feedbackRouter from "./routes/feedbackRoutes.js"; // ✅ Import feedback routes
+import deliveryPartnerRoutes from "./routes/deliveryPartnerRoutes.js";
 
 import "dotenv/config";
 
@@ -24,7 +26,7 @@ connectDB();
 
 app.use("/uploads", express.static("uploads"));
 
-// // Static file serving
+// Static file serving
 app.use("/images", express.static("uploads")); // Ensure images from 'uploads' folder are accessible
 
 // API endpoints
@@ -34,7 +36,9 @@ app.use("/api/food", foodRouter); // Handles food-related routes
 app.use("/api/cart", cartRouter); // Handles cart-related routes
 app.use("/api/order", orderRouter); // Handles order-related routes
 app.use("/api/categories", categoryRouter); // Handles category-related routes
-app.use("/api/coupons", couponRouter);
+app.use("/api/coupons", couponRouter); // Handles coupon routes
+app.use("/api/feedback", feedbackRouter); // ✅ Add feedback routes
+app.use("/api/delivery", deliveryPartnerRoutes);
 
 // Root route for API status
 app.get("/", (req, res) => {

@@ -113,10 +113,14 @@ const getFoodById = async (req, res) => {
   }
 };
 
-// Search food items by name or category
 const searchFood = async (req, res) => {
   try {
     const query = req.query.query || ""; // Search query parameter
+    console.log("🔍 Received search query:", query);
+
+    if (!query) {
+      return res.json({ success: false, message: "Query is required" });
+    }
 
     // Search food by name or category (case-insensitive)
     const foods = await foodModel.find({
@@ -126,10 +130,16 @@ const searchFood = async (req, res) => {
       ],
     });
 
+    console.log("✅ Search Results:", foods); // Debugging output
+
+    if (foods.length === 0) {
+      return res.json({ success: false, message: "No food items found" });
+    }
+
     res.json({ success: true, data: foods });
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: "Error searching food" });
+    console.error("❌ Error searching food:", error);
+    res.status(500).json({ success: false, message: "Error searching food" });
   }
 };
 

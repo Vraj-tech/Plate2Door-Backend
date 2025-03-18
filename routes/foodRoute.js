@@ -27,9 +27,10 @@ foodRouter.get("/list", listFood); // Get all food items
 foodRouter.post("/add", upload.single("image"), addFood); // Add a new food item
 foodRouter.post("/remove", removeFood); // Remove a food item
 foodRouter.put("/update/:foodId", upload.single("image"), updateFood); // Update a food item
-foodRouter.get("/:foodId", getFoodById); // Get food by ID (to pre-fill the update form)
 
 // Search food items by name or category
 foodRouter.get("/search", searchFood); // New search route
+
+foodRouter.get("/:foodId", getFoodById); // Get food by ID (to pre-fill the update form)
 
 export default foodRouter;
