@@ -8,6 +8,7 @@ import {
   verifyOrder,
   placeOrderCod,
   getPartnerOrders,
+  getOrderStats,
 } from "../controllers/orderController.js";
 
 const orderRouter = express.Router();
@@ -19,5 +20,6 @@ orderRouter.post("/status", updateStatus);
 orderRouter.post("/verify", verifyOrder);
 orderRouter.post("/placecod", authMiddleware, placeOrderCod);
 orderRouter.post("/partner-orders", authMiddleware, getPartnerOrders); // ✅ Add new route
+orderRouter.get("/order-stats", getOrderStats);
 
 export default orderRouter;

@@ -10,6 +10,7 @@ import couponRouter from "./routes/couponRoute.js";
 import adminRouter from "./routes/adminRoute.js"; // Import admin routes
 import feedbackRouter from "./routes/feedbackRoutes.js"; // ✅ Import feedback routes
 import deliveryPartnerRoutes from "./routes/deliveryPartnerRoutes.js";
+import ratingRoutes from "./routes/ratingRoutes.js";
 
 import "dotenv/config";
 
@@ -39,6 +40,7 @@ app.use("/api/categories", categoryRouter); // Handles category-related routes
 app.use("/api/coupons", couponRouter); // Handles coupon routes
 app.use("/api/feedback", feedbackRouter); // ✅ Add feedback routes
 app.use("/api/delivery", deliveryPartnerRoutes);
+app.use("/api/reviews", ratingRoutes);
 
 // Root route for API status
 app.get("/", (req, res) => {

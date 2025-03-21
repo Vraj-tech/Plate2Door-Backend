@@ -2,10 +2,11 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import deliveryPartnerModel from "../models/DeliveryPartner.js";
 import orderModel from "../models/orderModel.js"; // ✅ Import Order Model
+import { transporter } from "./orderController.js"; // ✅ Correct ES Module import
 
 // ✅ Register Delivery Partner
 // ✅ Register Delivery Partner with 'pending' status
-export const registerDeliveryPartner = async (req, res) => {
+const registerDeliveryPartner = async (req, res) => {
   const { name, email, password, phone } = req.body;
 
   try {
@@ -40,7 +41,7 @@ export const registerDeliveryPartner = async (req, res) => {
 
 // ✅ Delivery Partner Login
 // ✅ Delivery Partner Login (Updated with Status Check)
-export const loginDeliveryPartner = async (req, res) => {
+const loginDeliveryPartner = async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -91,8 +92,8 @@ export const loginDeliveryPartner = async (req, res) => {
   }
 };
 
-// ✅ Assign Delivery Partner to an Order
-export const assignDeliveryPartner = async (req, res) => {
+// ✅ Assign Delivery Partner & Send Email
+const assignDeliveryPartner = async (req, res) => {
   try {
     const { orderId, deliveryPartnerId } = req.body;
 
@@ -132,24 +133,53 @@ export const assignDeliveryPartner = async (req, res) => {
     // ✅ Add the order to the delivery partner's `assignedOrders` array
     await deliveryPartnerModel.findByIdAndUpdate(
       deliveryPartnerId,
-      { $push: { assignedOrders: orderId } }, // ✅ Push orderId to assignedOrders
+      { $push: { assignedOrders: orderId } },
       { new: true }
     );
 
+    // ✅ Send Email Notification to Delivery Partner
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: deliveryPartner.email, // Assigned delivery partner's email
+      subject: "🚚 New Delivery Assignment - Order #" + updatedOrder._id,
+      text: `Dear ${deliveryPartner.name},
+    
+    You have been assigned a new delivery order.
+    
+    📦 Order ID: ${updatedOrder._id}
+    🕒 Please check your dashboard for more details.
+    
+    Make sure to complete the delivery on time and provide excellent service.
+    
+    Thank you for your dedication!
+    
+    Best regards,  
+    Plate2Door Team
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log("❌ Email error:", error);
+      } else {
+        console.log("✅ Email sent:", info.response);
+      }
+    });
+
     res.status(200).json({
       success: true,
-      message: "Delivery partner assigned successfully",
+      message: "Delivery partner assigned successfully & email sent",
       order: updatedOrder,
     });
   } catch (error) {
-    console.error("Error assigning delivery partner:", error);
+    console.error("❌ Error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
 
 // ✅ Get Orders Assigned to a Delivery Partner
 // ✅ Enhanced Get Orders Assigned to a Delivery Partner
-export const getAssignedOrders = async (req, res) => {
+const getAssignedOrders = async (req, res) => {
   try {
     const partnerId = req.userId; // Use the userId from authMiddleware
 
@@ -191,7 +221,7 @@ export const getAssignedOrders = async (req, res) => {
 };
 
 // ✅ Get All Delivery Partners (List)
-export const getAllDeliveryPartners = async (req, res) => {
+const getAllDeliveryPartners = async (req, res) => {
   try {
     // ✅ Fetch all delivery partners with assigned orders populated
     const partners = await deliveryPartnerModel
@@ -213,7 +243,7 @@ export const getAllDeliveryPartners = async (req, res) => {
   }
 };
 // ✅ Get All Pending Delivery Partners
-export const getPendingDeliveryPartners = async (req, res) => {
+const getPendingDeliveryPartners = async (req, res) => {
   try {
     const pendingPartners = await deliveryPartnerModel.find({
       status: "pending",
@@ -226,7 +256,7 @@ export const getPendingDeliveryPartners = async (req, res) => {
   }
 };
 // ✅ Approve or Reject Delivery Partner
-export const updateDeliveryPartnerStatus = async (req, res) => {
+const updateDeliveryPartnerStatus = async (req, res) => {
   const { partnerId, status } = req.body;
 
   // ✅ Validate status value
@@ -256,7 +286,7 @@ export const updateDeliveryPartnerStatus = async (req, res) => {
   }
 };
 // ✅ Update Order Status Controller (with isFinalDelivered logic)
-export const updateOrderStatus = async (req, res) => {
+const updateOrderStatus = async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
 
@@ -304,7 +334,7 @@ export const updateOrderStatus = async (req, res) => {
 };
 
 // ✅ Update Availability Status
-export const updateAvailability = async (req, res) => {
+const updateAvailability = async (req, res) => {
   const { partnerId, isAvailable } = req.body;
 
   try {
@@ -327,4 +357,15 @@ export const updateAvailability = async (req, res) => {
     console.error("Error updating availability:", error);
     res.status(500).json({ message: "Server Error" });
   }
+};
+export {
+  registerDeliveryPartner,
+  loginDeliveryPartner,
+  getAssignedOrders,
+  assignDeliveryPartner,
+  getAllDeliveryPartners,
+  getPendingDeliveryPartners, // ✅ Added for admin approval
+  updateDeliveryPartnerStatus,
+  updateOrderStatus, // ✅ Added for approval/rejection
+  updateAvailability,
 };

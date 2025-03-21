@@ -10,7 +10,7 @@ const currency = "inr";
 const frontend_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 // ✅ Nodemailer Transporter Setup for Order Emails
-const transporter = nodemailer.createTransport({
+export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT) || 587,
   secure: false,
@@ -229,6 +229,34 @@ const getPartnerOrders = async (req, res) => {
     res.json({ success: false, message: "Error fetching partner orders" });
   }
 };
+// ✅ Fetch Order Statistics
+const getOrderStats = async (req, res) => {
+  try {
+    const totalOrders = await orderModel.countDocuments();
+    const pendingOrders = await orderModel.countDocuments({
+      status: "Food Processing",
+    });
+    const outForDelivery = await orderModel.countDocuments({
+      status: "Out for Delivery",
+    });
+    const deliveredOrders = await orderModel.countDocuments({
+      status: "Delivered",
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalOrders,
+        pendingOrders,
+        outForDelivery,
+        deliveredOrders,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching order stats:", error);
+    res.json({ success: false, message: "Error fetching order statistics" });
+  }
+};
 
 export {
   placeOrder,
@@ -238,5 +266,6 @@ export {
   updateStatus,
   verifyOrder,
   getPartnerOrders,
+  getOrderStats,
 };
 //okok
