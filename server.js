@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import http from "http";
+import { Server } from "socket.io";
 import { connectDB } from "./config/db.js";
 import userRouter from "./routes/userRoute.js";
 import foodRouter from "./routes/foodRoute.js";
@@ -53,9 +55,48 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: "Internal Server Error" });
 });
 
-// Start the server
-app.listen(port, () =>
-  console.log(`🚀 Server started on http://localhost:${port}`)
-);
+/// Create HTTP server
+const server = http.createServer(app);
 
-//new day2 coupan
+// Setup Socket.IO server
+const io = new Server(server, {
+  cors: {
+    origin: "*", // later restrict this to your frontend domain
+    methods: ["GET", "POST"],
+  },
+});
+
+// Handle socket connections
+io.on("connection", (socket) => {
+  console.log("✅ Socket connected:", socket.id);
+
+  // Join specific order room
+  socket.on("joinRoom", (orderId) => {
+    console.log(`Socket ${socket.id} joining room: ${orderId}`);
+    socket.join(orderId);
+
+    // Debug: show all sockets in the room
+    const roomSockets = io.sockets.adapter.rooms.get(orderId);
+    console.log(
+      `📦 Current sockets in room ${orderId}:`,
+      roomSockets ? [...roomSockets] : []
+    );
+  });
+
+  // Receive location updates from the delivery partner
+  socket.on("locationUpdate", ({ orderId, lat, lng }) => {
+    console.log(`📍 Order ${orderId} location update: ${lat}, ${lng}`);
+    // Broadcast location update to the room (user side listening)
+    io.to(orderId).emit("locationUpdate", { lat, lng });
+  });
+
+  // Handle socket disconnections
+  socket.on("disconnect", () => {
+    console.log("❌ Socket disconnected:", socket.id);
+  });
+});
+
+// Start the server
+server.listen(port, () => {
+  console.log(`🚀 Server + Socket.IO running at http://localhost:${port}`);
+});
