@@ -6,6 +6,7 @@ import {
   updateFood,
   searchFood,
   getFoodById, // Import the getFoodById function
+  suggestFood, // ✅ ADD this line
 } from "../controllers/foodController.js";
 import multer from "multer";
 import foodModel from "../models/foodModel.js"; // Import the food model
@@ -30,6 +31,8 @@ foodRouter.put("/update/:foodId", upload.single("image"), updateFood); // Update
 
 // Search food items by name or category
 foodRouter.get("/search", searchFood); // New search route
+// 🔍 Autocomplete suggestion endpoint
+foodRouter.get("/suggestions", suggestFood);
 
 foodRouter.get("/:foodId", getFoodById); // Get food by ID (to pre-fill the update form)
 

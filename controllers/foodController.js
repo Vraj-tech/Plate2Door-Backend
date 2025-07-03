@@ -142,5 +142,35 @@ const searchFood = async (req, res) => {
     res.status(500).json({ success: false, message: "Error searching food" });
   }
 };
+// 🔎 Suggest food names for live search/autocomplete
+const suggestFood = async (req, res) => {
+  try {
+    const query = req.query.query || "";
 
-export { listFood, addFood, removeFood, updateFood, getFoodById, searchFood };
+    if (!query) {
+      return res.json({ success: true, data: [] }); // Return empty list for empty input
+    }
+
+    const suggestions = await foodModel
+      .find({
+        name: { $regex: query, $options: "i" },
+      })
+      .select("name") // Only return name field
+      .limit(5); // Limit to 5 suggestions
+
+    res.json({ success: true, data: suggestions });
+  } catch (error) {
+    console.error("❌ Error fetching suggestions:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export {
+  listFood,
+  addFood,
+  removeFood,
+  updateFood,
+  getFoodById,
+  searchFood,
+  suggestFood, // ✅ added here
+};
