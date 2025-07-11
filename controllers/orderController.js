@@ -24,29 +24,85 @@ export const transporter = nodemailer.createTransport({
 });
 
 // ✅ Refined Function to Send Professional Order Confirmation Email
-const sendOrderEmail = async ({ to, orderId, paymentMethod, userName }) => {
+const sendOrderEmail = async ({
+  to,
+  orderId,
+  paymentMethod,
+  userName,
+  items = [],
+  address = {},
+  amount,
+}) => {
   const subject = "✅ Plate2Door - Your Order is Confirmed!";
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9;">
-      <h2 style="text-align: center; color: #4CAF50;">Thank You for Your Order${
-        userName ? `, ${userName}` : ""
-      }!</h2>
-      <p>Your order <strong>#${orderId}</strong> has been <strong>successfully placed</strong> using <strong>${paymentMethod}</strong>.</p>
-      
-      <div style="background-color: #ffffff; padding: 15px; border-radius: 4px; border: 1px solid #ddd; margin: 15px 0;">
-        <p style="margin: 0;"><strong>Payment Method:</strong> ${paymentMethod}</p>
-        <p style="margin: 0;"><strong>Order ID:</strong> ${orderId}</p>
-      </div>
-      
-      <p>You can track your order status by clicking the button below:</p>
-      <a href="${frontend_URL}/myorders" 
-         style="display: inline-block; padding: 12px 24px; margin-top: 10px; background-color: #4CAF50; color: #fff; text-decoration: none; border-radius: 4px;">
-         Track Your Order
-      </a>
 
-      <p style="margin-top: 20px;">🍽️ Thank you for choosing <strong>Plate2Door</strong>! We hope you enjoy your meal.</p>
-      <p style="font-size: 12px; color: #888;">&copy; ${new Date().getFullYear()} Plate2Door. All rights reserved.</p>
-    </div>
+  const itemsHtml = items
+    .map(
+      (item) => `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #ddd;">${
+            item.name
+          }</td>
+          <td style="padding: 8px; text-align: center; border-bottom: 1px solid #ddd;">${
+            item.quantity
+          }</td>
+          <td style="padding: 8px; text-align: right; border-bottom: 1px solid #ddd;">₹${
+            item.price * item.quantity
+          }</td>
+        </tr>`
+    )
+    .join("");
+
+  const addressHtml = `
+    ${address.firstName || ""} ${address.lastName || ""}<br/>
+    ${address.street || ""}, ${address.city || ""}<br/>
+    ${address.state || ""} - ${address.zipcode || ""}<br/>
+    Phone: ${address.phone || ""}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Order Confirmation</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+      <div style="max-width: 600px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        <h2 style="color: #4CAF50; text-align: center;">Thank You for Your Order${
+          userName ? `, ${userName}` : ""
+        }!</h2>
+        <p style="font-size: 16px; color: #333;">Your order <strong>#${orderId}</strong> has been successfully placed using <strong>${paymentMethod}</strong>.</p>
+
+        <h3 style="margin-top: 30px; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">🧾 Order Summary</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 15px; color: #333;">
+          <thead>
+            <tr style="background-color: #f0f0f0;">
+              <th style="padding: 10px; text-align: left;">Item</th>
+              <th style="padding: 10px; text-align: center;">Qty</th>
+              <th style="padding: 10px; text-align: right;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <p style="margin-top: 12px; font-size: 16px;"><strong>Total Paid:</strong> ₹${amount}</p>
+
+        <h3 style="margin-top: 30px; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">📍 Delivery Address</h3>
+        <p style="line-height: 1.6; font-size: 15px; color: #555;">${addressHtml}</p>
+
+        <a href="${frontend_URL}/myorders" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #4CAF50; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+          Track Your Order
+        </a>
+
+        <p style="margin-top: 30px; font-size: 15px; color: #333;">🍽️ Thanks for choosing <strong>Plate2Door</strong>. We hope you enjoy your meal!</p>
+
+        <hr style="margin: 30px 0;" />
+        <p style="font-size: 12px; color: #999; text-align: center;">&copy; ${new Date().getFullYear()} Plate2Door. All rights reserved.</p>
+      </div>
+    </body>
+    </html>
   `;
 
   try {
@@ -92,7 +148,10 @@ const placeOrder = async (req, res) => {
       to: user.email,
       orderId: newOrder._id,
       paymentMethod: "Stripe",
-      userName: user.name, // Pass user name if available
+      userName: user.name,
+      items,
+      address,
+      amount, // Pass user name if available
     });
 
     // Calculate discounted price per item
@@ -153,7 +212,10 @@ const placeOrderCod = async (req, res) => {
       to: user.email,
       orderId: newOrder._id,
       paymentMethod: "Cash on Delivery",
-      userName: user.name, // Pass user name if available
+      userName: user.name,
+      items,
+      address,
+      amount, // Pass user name if available
     });
 
     res.json({ success: true, message: "Order Placed" });
