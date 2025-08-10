@@ -15,6 +15,8 @@ const storage = new CloudinaryStorage({
   },
 });
 
+console.log("Cloudinary URL available?", !!process.env.CLOUDINARY_URL);
+
 const upload = multer({ storage });
 
 export { cloudinary, upload };
