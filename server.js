@@ -27,10 +27,10 @@ app.use(cors()); // Enables Cross-Origin Resource Sharing
 // Database connection
 connectDB();
 
-app.use("/uploads", express.static("uploads"));
+// app.use("/uploads", express.static("uploads"));
 
-// Static file serving
-app.use("/images", express.static("uploads")); // Ensure images from 'uploads' folder are accessible
+// // Static file serving
+// app.use("/images", express.static("uploads")); // Ensure images from 'uploads' folder are accessible
 
 // API endpoints
 app.use("/api/admin", adminRouter); // Add admin routes

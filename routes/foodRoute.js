@@ -10,18 +10,20 @@ import {
 } from "../controllers/foodController.js";
 import multer from "multer";
 import foodModel from "../models/foodModel.js"; // Import the food model
+// Inside your routes/foodRoutes.js or similar
+import { upload } from "../config/cloudinary.js";
 
 const foodRouter = express.Router();
 
-// Image Storage Engine (Saving image to uploads folder & renaming it)
-const storage = multer.diskStorage({
-  destination: "uploads", // Ensure the 'uploads' folder exists and is writable
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`); // Include a timestamp for unique filenames
-  },
-});
+// // Image Storage Engine (Saving image to uploads folder & renaming it)
+// const storage = multer.diskStorage({
+//   destination: "uploads", // Ensure the 'uploads' folder exists and is writable
+//   filename: (req, file, cb) => {
+//     cb(null, `${Date.now()}-${file.originalname}`); // Include a timestamp for unique filenames
+//   },
+// });
 
-const upload = multer({ storage });
+// const upload = multer({ storage });
 
 // API Endpoints
 foodRouter.get("/list", listFood); // Get all food items
@@ -34,6 +36,20 @@ foodRouter.get("/search", searchFood); // New search route
 // 🔍 Autocomplete suggestion endpoint
 foodRouter.get("/suggestions", suggestFood);
 
+foodRouter.post("/upload", upload.single("image"), (req, res) => {
+  try {
+    console.log("Uploaded file:", req.file);
+    res.status(200).json({
+      message: "Upload success ✅",
+      imageUrl: req.file.path,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Upload failed ❌",
+      error: err.message,
+    });
+  }
+});
 foodRouter.get("/:foodId", getFoodById); // Get food by ID (to pre-fill the update form)
 
 export default foodRouter;
