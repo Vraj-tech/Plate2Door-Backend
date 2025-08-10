@@ -317,13 +317,17 @@ const getUserFavorites = async (req, res) => {
     }
 
     const BASE_URL = process.env.BASE_URL || "http://localhost:4000";
+
     const updatedFavorites = user.favorites.map((item) => ({
       ...item._doc,
-      image: `${BASE_URL}/uploads/${item.image}`,
+      image: item.image?.startsWith("http")
+        ? item.image // Already a full URL (Cloudinary)
+        : `${BASE_URL}/uploads/${item.image}`, // Local image
     }));
 
     res.status(200).json({ success: true, favorites: updatedFavorites });
   } catch (error) {
+    console.error("Error fetching favorites:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
