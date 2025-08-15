@@ -61,7 +61,7 @@ const server = http.createServer(app);
 // Setup Socket.IO server
 const io = new Server(server, {
   cors: {
-    origin: "*", // later restrict this to your frontend domain
+    origin: "https://plate2door-frontend.onrender.com", // later restrict this to your frontend domain
     methods: ["GET", "POST"],
   },
 });
