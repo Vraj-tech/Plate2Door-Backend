@@ -66,7 +66,9 @@ const io = new Server(server, {
   },
 });
 
-// Handle socket connections
+// Store latest location for each order
+const lastLocations = {};
+
 io.on("connection", (socket) => {
   console.log("✅ Socket connected:", socket.id);
 
@@ -74,6 +76,11 @@ io.on("connection", (socket) => {
   socket.on("joinRoom", (orderId) => {
     console.log(`Socket ${socket.id} joining room: ${orderId}`);
     socket.join(orderId);
+
+    // If we have the last known location, send it instantly
+    if (lastLocations[orderId]) {
+      socket.emit("locationUpdate", lastLocations[orderId]);
+    }
 
     // Debug: show all sockets in the room
     const roomSockets = io.sockets.adapter.rooms.get(orderId);
@@ -86,7 +93,11 @@ io.on("connection", (socket) => {
   // Receive location updates from the delivery partner
   socket.on("locationUpdate", ({ orderId, lat, lng }) => {
     console.log(`📍 Order ${orderId} location update: ${lat}, ${lng}`);
-    // Broadcast location update to the room (user side listening)
+
+    // Save the latest location in memory
+    lastLocations[orderId] = { lat, lng };
+
+    // Broadcast to everyone in the room
     io.to(orderId).emit("locationUpdate", { lat, lng });
   });
 
