@@ -105,7 +105,7 @@ io.on("connection", (socket) => {
 
   // Handle socket disconnections
   socket.on("disconnect", () => {
-    console.log("❌ Socket disconnected:", socket.id);
+    console.log("❌ Socket disconnecte:", socket.id);
   });
 });
 
@@ -113,3 +113,4 @@ io.on("connection", (socket) => {
 server.listen(port, () => {
   console.log(`🚀 Server + Socket.IO running at http://localhost:${port}`);
 });
+//Test after usrname change
